@@ -28,13 +28,21 @@ export const stripeWebhookHandler = async (
     return res
       .status(400)
       .send(
-        `Webhook Error: ${err instanceof Error ? err.message : 'Unknown Error'}`
+        `Webhook Error: ${
+          err instanceof Error
+            ? err.message
+            : 'Unknown Error'
+        }`
       )
   }
 
-  const session = event.data.object as Stripe.Checkout.Session
+  const session = event.data
+    .object as Stripe.Checkout.Session
 
-  if (!session?.metadata?.userId || !session?.metadata?.orderId) {
+  if (
+    !session?.metadata?.userId ||
+    !session?.metadata?.orderId
+  ) {
     return res
       .status(400)
       .send(`Webhook Error: No user present in metadata`)
@@ -47,60 +55,64 @@ export const stripeWebhookHandler = async (
       collection: 'users',
       where: {
         id: {
-          equals: session.metadata.userId
-        }
-      }
+          equals: session.metadata.userId,
+        },
+      },
     })
 
     const [user] = users
 
-    if (!user) return res.status(404).json({ error: 'No such user exists.' })
+    if (!user)
+      return res
+        .status(404)
+        .json({ error: 'No such user exists.' })
 
     const { docs: orders } = await payload.find({
       collection: 'orders',
       depth: 2,
       where: {
         id: {
-          equals: session.metadata.orderId
-        }
-      }
+          equals: session.metadata.orderId,
+        },
+      },
     })
 
     const [order] = orders
 
-    if (!order) return res.status(404).json({ error: 'No such order exists.' })
+    if (!order)
+      return res
+        .status(404)
+        .json({ error: 'No such order exists.' })
 
     await payload.update({
       collection: 'orders',
       data: {
-        _isPaid: true
+        _isPaid: true,
       },
       where: {
         id: {
-          equals: session.metadata.orderId
-        }
-      }
+          equals: session.metadata.orderId,
+        },
+      },
     })
 
     // send receipt
     try {
       const data = await resend.emails.send({
-        from: 'DigitalHippo <filippo.decristo@gmail.com>',
+        from: 'DigitalHippo <hello@joshtriedcoding.com>',
         to: [user.email],
-        subject: 'Thanks for your order! This is your receipt.',
+        subject:
+          'Thanks for your order! This is your receipt.',
         html: ReceiptEmailHtml({
           date: new Date(),
           email: user.email,
           orderId: session.metadata.orderId,
-          products: order.products as Product[]
-        })
+          products: order.products as Product[],
+        }),
       })
       res.status(200).json({ data })
     } catch (error) {
-      // Convert the caught error into a string before sending it
-      const errorMessage =
-        error instanceof Error ? error.message : String(error)
-      res.status(500).json({ error: errorMessage })
+      res.status(500).json({ error })
     }
   }
 
