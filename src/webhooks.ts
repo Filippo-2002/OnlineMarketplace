@@ -25,7 +25,7 @@ export const stripeWebhookHandler = async (
       process.env.STRIPE_WEBHOOK_SECRET || ''
     )
   } catch (err) {
-    // Narrow the error to a string message
+    // Convert unknown error to a string message
     const errorMessage =
       err instanceof Error ? err.message : String(err)
     return res
@@ -104,7 +104,7 @@ export const stripeWebhookHandler = async (
       })
       return res.status(200).json({ data })
     } catch (error) {
-      // Convert the caught error to a string for the JSON response.
+      // Convert unknown error to a string message
       const errorMsg =
         error instanceof Error ? error.message : String(error)
       return res.status(500).json({ error: errorMsg })

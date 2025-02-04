@@ -35,11 +35,12 @@ export const paymentRouter = router({
         Boolean(prod.priceId)
       )
 
+      // Convert product IDs to strings to match the expected type
       const order = await payload.create({
         collection: 'orders',
         data: {
           _isPaid: false,
-          products: filteredProducts.map((prod) => prod.id),
+          products: filteredProducts.map((prod) => prod.id.toString()),
           user: user.id,
         },
       })
