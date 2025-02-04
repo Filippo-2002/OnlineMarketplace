@@ -35,7 +35,9 @@ export const stripeWebhookHandler = async (
   const session = event.data.object as Stripe.Checkout.Session
 
   if (!session?.metadata?.userId || !session?.metadata?.orderId) {
-    return res.status(400).send(`Webhook Error: No user present in metadata`)
+    return res
+      .status(400)
+      .send(`Webhook Error: No user present in metadata`)
   }
 
   if (event.type === 'checkout.session.completed') {
@@ -95,7 +97,10 @@ export const stripeWebhookHandler = async (
       })
       res.status(200).json({ data })
     } catch (error) {
-      res.status(500).json({ error })
+      // Convert the caught error into a string before sending it
+      const errorMessage =
+        error instanceof Error ? error.message : String(error)
+      res.status(500).json({ error: errorMessage })
     }
   }
 

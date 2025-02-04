@@ -31,29 +31,30 @@ export const paymentRouter = router({
         },
       })
 
-      const filteredProducts = products.filter((prod) =>
-        Boolean(prod.priceId)
-      )
+      // Filter out products that don’t have a priceId
+      const filteredProducts = products.filter((prod) => Boolean(prod.priceId))
 
+      // Convert product IDs to strings to match the expected type
       const order = await payload.create({
         collection: 'orders',
         data: {
           _isPaid: false,
-          products: filteredProducts.map((prod) => prod.id),
+          products: filteredProducts.map((prod) => prod.id.toString()),
           user: user.id,
         },
       })
 
-      const line_items: Stripe.Checkout.SessionCreateParams.LineItem[] =
-        []
+      const line_items: Stripe.Checkout.SessionCreateParams.LineItem[] = []
 
+      // Build line items from filtered products
       filteredProducts.forEach((product) => {
         line_items.push({
-          price: product.priceId!,
+          price: product.priceId!, // Assuming priceId is already a string
           quantity: 1,
         })
       })
 
+      // Add a fixed line item (if needed)
       line_items.push({
         price: 'price_1OCeBwA19umTXGu8s4p2G3aX',
         quantity: 1,
@@ -63,24 +64,24 @@ export const paymentRouter = router({
       })
 
       try {
-        const stripeSession =
-          await stripe.checkout.sessions.create({
-            success_url: `${process.env.NEXT_PUBLIC_SERVER_URL}/thank-you?orderId=${order.id}`,
-            cancel_url: `${process.env.NEXT_PUBLIC_SERVER_URL}/cart`,
-            payment_method_types: ['card', 'paypal'],
-            mode: 'payment',
-            metadata: {
-              userId: user.id,
-              orderId: order.id,
-            },
-            line_items,
-          })
+        const stripeSession = await stripe.checkout.sessions.create({
+          success_url: `${process.env.NEXT_PUBLIC_SERVER_URL}/thank-you?orderId=${order.id.toString()}`,
+          cancel_url: `${process.env.NEXT_PUBLIC_SERVER_URL}/cart`,
+          payment_method_types: ['card', 'paypal'],
+          mode: 'payment',
+          metadata: {
+            userId: user.id, // Assuming user.id is already a string
+            orderId: order.id.toString(), // Convert order.id to string
+          },
+          line_items,
+        })
 
         return { url: stripeSession.url }
       } catch (err) {
         return { url: null }
       }
     }),
+
   pollOrderStatus: privateProcedure
     .input(z.object({ orderId: z.string() }))
     .query(async ({ input }) => {
