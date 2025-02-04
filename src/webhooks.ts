@@ -25,24 +25,17 @@ export const stripeWebhookHandler = async (
       process.env.STRIPE_WEBHOOK_SECRET || ''
     )
   } catch (err) {
+    // Narrow the error to a string message
+    const errorMessage =
+      err instanceof Error ? err.message : String(err)
     return res
       .status(400)
-      .send(
-        `Webhook Error: ${
-          err instanceof Error
-            ? err.message
-            : 'Unknown Error'
-        }`
-      )
+      .send(`Webhook Error: ${errorMessage}`)
   }
 
-  const session = event.data
-    .object as Stripe.Checkout.Session
+  const session = event.data.object as Stripe.Checkout.Session
 
-  if (
-    !session?.metadata?.userId ||
-    !session?.metadata?.orderId
-  ) {
+  if (!session?.metadata?.userId || !session?.metadata?.orderId) {
     return res
       .status(400)
       .send(`Webhook Error: No user present in metadata`)
@@ -101,8 +94,7 @@ export const stripeWebhookHandler = async (
       const data = await resend.emails.send({
         from: 'DigitalHippo <hello@joshtriedcoding.com>',
         to: [user.email],
-        subject:
-          'Thanks for your order! This is your receipt.',
+        subject: 'Thanks for your order! This is your receipt.',
         html: ReceiptEmailHtml({
           date: new Date(),
           email: user.email,
@@ -110,9 +102,12 @@ export const stripeWebhookHandler = async (
           products: order.products as Product[],
         }),
       })
-      res.status(200).json({ data })
+      return res.status(200).json({ data })
     } catch (error) {
-      res.status(500).json({ error })
+      // Convert the caught error to a string for the JSON response.
+      const errorMsg =
+        error instanceof Error ? error.message : String(error)
+      return res.status(500).json({ error: errorMsg })
     }
   }
 
